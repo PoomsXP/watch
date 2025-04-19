@@ -694,16 +694,31 @@
       // Example: 12345, 67890
     ];
 
-    const FEATURED_ITEMS = [
-      { id: 42009, type: 'tv' },
-      { id: 249042, type: 'tv' },
-      { id: 939243, type: 'movie' }
-      // Add TMDB IDs you want to feature in the banner
-      // Format: { id: 12345, type: 'movie' } or { id: 67890, type: 'tv' }
-      // Example:
-      // { id: 299534, type: 'movie' }, // Avengers: Endgame
-      // { id: 1399, type: 'tv' }      // Game of Thrones
-    ];
+const FEATURED_ITEMS = [
+  // Trending Movies
+  { id: 872585, type: 'movie' }, // Oppenheimer (2023 blockbuster)
+  { id: 940721, type: 'movie' }, // Godzilla Minus One (2023 hit)
+  { id: 695721, type: 'movie' }, // The Hunger Games: The Ballad of Songbirds & Snakes
+  { id: 667538, type: 'movie' }, // Transformers: Rise of the Beasts
+  
+  // Popular TV Shows
+  { id: 1399, type: 'tv' },      // Game of Thrones (still popular)
+  { id: 94997, type: 'tv' },     // House of the Dragon (GoT prequel)
+  { id: 60574, type: 'tv' },     // Peaky Blinders
+  { id: 100088, type: 'tv' },    // The Last of Us
+  
+  // New Releases
+  { id: 926393, type: 'movie' }, // The Equalizer 3
+  { id: 968051, type: 'movie' }, // The Nun II
+  { id: 84773, type: 'tv' },     // Loki (Season 2)
+  { id: 114410, type: 'tv' },    // Invincible (Season 2)
+  
+  // Award-Winning Content
+  { id: 713704, type: 'movie' }, // Everything Everywhere All At Once
+  { id: 667520, type: 'movie' }, // The Banshees of Inisherin
+  { id: 1419, type: 'tv' },      // Breaking Bad (classic)
+  { id: 110492, type: 'tv' }     // The Bear (critically acclaimed)
+];
 
     // DOM Elements
     const resultsContainer = document.getElementById('results');
