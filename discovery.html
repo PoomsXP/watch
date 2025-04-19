@@ -1217,9 +1217,17 @@ const FEATURED_ITEMS = [
       currentSearchQuery = query;
       
       if (query.length > 2) {
+        // Hide featured banner and category tabs when searching
+        featuredBanner.style.display = 'none';
+        categoryTabs.style.display = 'none';
+        currentCategoryTitle.textContent = `Search Results for "${query}"`;
         currentPage = 1;
         search(query);
       } else if (query.length === 0) {
+        // Show featured banner and category tabs when search is cleared
+        featuredBanner.style.display = 'flex';
+        categoryTabs.style.display = 'flex';
+        currentCategoryTitle.textContent = currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1).replace('_', ' ');
         currentSearchQuery = '';
         currentPage = 1;
         fetchContent(currentCategory);
