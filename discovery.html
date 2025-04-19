@@ -34,6 +34,84 @@
       font-size: 16px;
     }
 
+    /* Featured Banner */
+    .featured-banner {
+      position: relative;
+      height: 70vh;
+      min-height: 500px;
+      background-size: cover;
+      background-position: center;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .featured-banner::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 150px;
+      background: linear-gradient(to top, #0f0c29, transparent);
+    }
+
+    .featured-content {
+      position: relative;
+      width: 100%;
+      padding: 40px;
+      z-index: 2;
+      max-width: 800px;
+    }
+
+    .featured-title {
+      font-size: 3em;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .featured-overview {
+      font-size: 1.1em;
+      line-height: 1.5;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+      max-width: 600px;
+    }
+
+    .featured-buttons {
+      display: flex;
+      gap: 15px;
+    }
+
+    .featured-btn {
+      padding: 12px 25px;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1.1em;
+    }
+
+    .featured-btn-play {
+      background: #ff66cc;
+      color: white;
+      border: none;
+    }
+
+    .featured-btn-play:hover {
+      background: #ff85d8;
+    }
+
+    .featured-btn-info {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: none;
+    }
+
+    .featured-btn-info:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -453,6 +531,23 @@
 
     /* Responsive adjustments */
     @media (max-width: 768px) {
+      .featured-banner {
+        height: 60vh;
+        min-height: 400px;
+      }
+      
+      .featured-content {
+        padding: 20px;
+      }
+      
+      .featured-title {
+        font-size: 2em;
+      }
+      
+      .featured-overview {
+        font-size: 1em;
+      }
+      
       .detail-container {
         width: 95%;
       }
@@ -482,14 +577,32 @@
   <div class="search-bar">
     <input type="text" id="searchInput" placeholder="Search movies or TV shows...">
   </div>
+
+  <!-- Featured Banner -->
+  <div class="featured-banner" id="featuredBanner" style="display: none;">
+    <div class="featured-content">
+      <h1 class="featured-title" id="featuredTitle">Featured Title</h1>
+      <p class="featured-overview" id="featuredOverview">Featured overview text goes here...</p>
+      <div class="featured-buttons">
+        <button class="featured-btn featured-btn-play" id="featuredPlay">▶ Play</button>
+        <button class="featured-btn featured-btn-info" id="featuredInfo">ℹ️ More Info</button>
+      </div>
+    </div>
+  </div>
+
   <div class="category-tabs" id="categoryTabs">
     <div class="category-tab active" data-category="trending">Trending</div>
-    <div class="category-tab" data-category="popular">Popular</div>
     <div class="category-tab" data-category="top_rated">Top Rated</div>
     <div class="category-tab" data-category="action">Action</div>
     <div class="category-tab" data-category="comedy">Comedy</div>
     <div class="category-tab" data-category="sci_fi">Sci-Fi</div>
+    <div class="category-tab" data-category="horror">Horror</div>
+    <div class="category-tab" data-category="drama">Drama</div>
+    <div class="category-tab" data-category="romance">Romance</div>
+    <div class="category-tab" data-category="animation">Animation</div>
+    <div class="category-tab" data-category="documentary">Documentary</div>
   </div>
+
   <div class="category-section">
     <div class="category-title" id="currentCategory">Trending</div>
     <div class="grid" id="results"></div>
@@ -575,12 +688,34 @@
     const BASE_URL = 'https://api.themoviedb.org/3';
     const IMG_BASE = 'https://image.tmdb.org/t/p/';
 
+    // Configuration - Edit these values
+    const BLACKLIST_IDS = [
+      // Add TMDB IDs you want to block
+      // Example: 12345, 67890
+    ];
+
+    const FEATURED_ITEMS = [
+      { id: 42009, type: 'tv' },
+      { id: 249042, type: 'tv' },
+      { id: 939243, type: 'movie' }
+      // Add TMDB IDs you want to feature in the banner
+      // Format: { id: 12345, type: 'movie' } or { id: 67890, type: 'tv' }
+      // Example:
+      // { id: 299534, type: 'movie' }, // Avengers: Endgame
+      // { id: 1399, type: 'tv' }      // Game of Thrones
+    ];
+
     // DOM Elements
     const resultsContainer = document.getElementById('results');
     const searchInput = document.getElementById('searchInput');
     const categoryTabs = document.getElementById('categoryTabs');
     const currentCategoryTitle = document.getElementById('currentCategory');
     const loadingIndicator = document.getElementById('loadingIndicator');
+    const featuredBanner = document.getElementById('featuredBanner');
+    const featuredTitle = document.getElementById('featuredTitle');
+    const featuredOverview = document.getElementById('featuredOverview');
+    const featuredPlay = document.getElementById('featuredPlay');
+    const featuredInfo = document.getElementById('featuredInfo');
     const detailOverlay = document.getElementById('detailOverlay');
     const detailClose = document.getElementById('detailClose');
     const detailHeader = document.getElementById('detailHeader');
@@ -606,7 +741,7 @@
 
     // State
     let currentMedia = {};
-    let currentCategory = 'trending'; // Default to trending
+    let currentCategory = 'trending';
     let currentPage = 1;
     let isLoading = false;
     let hasMoreContent = true;
@@ -617,14 +752,58 @@
     const GENRE_IDS = {
       action: 28,
       comedy: 35,
-      sci_fi: 878
+      sci_fi: 878,
+      horror: 27,
+      drama: 18,
+      romance: 10749,
+      animation: 16,
+      documentary: 99
     };
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
+      loadFeaturedContent();
       fetchContent(currentCategory);
       setupInfiniteScroll();
     });
+
+    // Load featured content
+    async function loadFeaturedContent() {
+      if (FEATURED_ITEMS.length === 0) return;
+      
+      try {
+        // Randomly select a featured item
+        const featuredItem = FEATURED_ITEMS[Math.floor(Math.random() * FEATURED_ITEMS.length)];
+        const url = `${BASE_URL}/${featuredItem.type}/${featuredItem.id}?api_key=${API_KEY}`;
+        const response = await fetch(url);
+        const details = await response.json();
+
+        // Set featured banner content
+        featuredBanner.style.display = 'flex';
+        featuredBanner.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${IMG_BASE}original${details.backdrop_path})`;
+        featuredTitle.textContent = featuredItem.type === 'movie' ? details.title : details.name;
+        featuredOverview.textContent = details.overview || 'No overview available.';
+
+        // Set up play button
+        featuredPlay.onclick = () => {
+          if (featuredItem.type === 'tv') {
+            showSeasonEpisodeModal(featuredItem.id, true);
+          } else {
+            play('movie', featuredItem.id);
+          }
+        };
+
+        // Set up info button
+        featuredInfo.onclick = () => {
+          showDetails({
+            id: featuredItem.id,
+            isTV: featuredItem.type === 'tv'
+          });
+        };
+      } catch (error) {
+        console.error('Error loading featured content:', error);
+      }
+    }
 
     // Event Listeners
     categoryTabs.addEventListener('click', handleCategoryClick);
@@ -672,30 +851,21 @@
       
       let movieUrl, tvUrl;
       
-      switch(category) {
-        case 'popular':
-          movieUrl = `${BASE_URL}/movie/popular?api_key=${API_KEY}&page=${page}`;
-          tvUrl = `${BASE_URL}/tv/popular?api_key=${API_KEY}&page=${page}`;
-          break;
-        case 'trending':
-          movieUrl = `${BASE_URL}/trending/movie/day?api_key=${API_KEY}&page=${page}`;
-          tvUrl = `${BASE_URL}/trending/tv/day?api_key=${API_KEY}&page=${page}`;
-          break;
-        case 'top_rated':
-          movieUrl = `${BASE_URL}/movie/top_rated?api_key=${API_KEY}&page=${page}`;
-          tvUrl = `${BASE_URL}/tv/top_rated?api_key=${API_KEY}&page=${page}`;
-          break;
-        default:
-          if (GENRE_IDS[category]) {
-            movieUrl = `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=${GENRE_IDS[category]}&page=${page}`;
-            tvUrl = `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=${GENRE_IDS[category]}&page=${page}`;
-          }
+      if (category === 'trending') {
+        movieUrl = `${BASE_URL}/trending/movie/day?api_key=${API_KEY}&page=${page}`;
+        tvUrl = `${BASE_URL}/trending/tv/day?api_key=${API_KEY}&page=${page}`;
+      } else if (category === 'top_rated') {
+        movieUrl = `${BASE_URL}/movie/top_rated?api_key=${API_KEY}&page=${page}`;
+        tvUrl = `${BASE_URL}/tv/top_rated?api_key=${API_KEY}&page=${page}`;
+      } else if (GENRE_IDS[category]) {
+        movieUrl = `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=${GENRE_IDS[category]}&page=${page}`;
+        tvUrl = `${BASE_URL}/discover/tv?api_key=${API_KEY}&with_genres=${GENRE_IDS[category]}&page=${page}`;
       }
 
       try {
         const [moviesResponse, tvResponse] = await Promise.all([
-          fetch(movieUrl).then(r => r.json()),
-          fetch(tvUrl).then(r => r.json())
+          movieUrl ? fetch(movieUrl).then(r => r.json()) : { results: [] },
+          tvUrl ? fetch(tvUrl).then(r => r.json()) : { results: [] }
         ]);
         
         if (page === 1) {
@@ -703,13 +873,22 @@
           hasMoreContent = true;
         }
         
-        // Combine results with TV shows first
-        const combinedResults = [...tvResponse.results.map(item => ({ ...item, isTV: true })), 
-                         ...moviesResponse.results.map(item => ({ ...item, isTV: false }))];
+        // Combine results with TV shows first and filter blacklisted items
+        const combinedResults = [
+          ...tvResponse.results
+            .filter(item => !BLACKLIST_IDS.includes(item.id))
+            .map(item => ({ ...item, isTV: true })), 
+          ...moviesResponse.results
+            .filter(item => !BLACKLIST_IDS.includes(item.id))
+            .map(item => ({ ...item, isTV: false }))
+        ];
         
         displayResults(combinedResults);
         
-        if (page >= Math.min(moviesResponse.total_pages, tvResponse.total_pages)) {
+        if (page >= Math.min(
+          moviesResponse.total_pages || 1, 
+          tvResponse.total_pages || 1
+        )) {
           hasMoreContent = false;
         }
       } catch (error) {
@@ -957,11 +1136,26 @@
       }
     }
 
-    async function showSeasonEpisodeModal() {
+    async function showSeasonEpisodeModal(tvId = null, fromFeatured = false) {
       try {
+        const id = tvId || currentMedia.id;
+        
+        // Get TV show details if we don't already have them
+        if (fromFeatured) {
+          const details = await fetch(`${BASE_URL}/tv/${id}?api_key=${API_KEY}`).then(r => r.json());
+          currentMedia = {
+            id: details.id,
+            type: 'tv',
+            seasons: details.seasons.filter(s => s.season_number > 0)
+          };
+        }
+        
+        // Populate season selector
+        populateSeasonSelector(currentMedia.seasons);
+        
         // Populate episode selector for the selected season
         const seasonNumber = parseInt(modalSeasonSelect.value);
-        const seasonDetails = await fetch(`${BASE_URL}/tv/${currentMedia.id}/season/${seasonNumber}?api_key=${API_KEY}`).then(r => r.json());
+        const seasonDetails = await fetch(`${BASE_URL}/tv/${id}/season/${seasonNumber}?api_key=${API_KEY}`).then(r => r.json());
         
         modalEpisodeSelect.innerHTML = '';
         seasonDetails.episodes.forEach(episode => {
@@ -1029,9 +1223,15 @@
           hasMoreContent = true;
         }
         
-        // Combine results with TV shows first
-        const combinedResults = [...tvSearch.results.map(item => ({ ...item, isTV: true })), 
-                         ...movieSearch.results.map(item => ({ ...item, isTV: false }))];
+        // Combine results with TV shows first and filter blacklisted items
+        const combinedResults = [
+          ...tvSearch.results
+            .filter(item => !BLACKLIST_IDS.includes(item.id))
+            .map(item => ({ ...item, isTV: true })), 
+          ...movieSearch.results
+            .filter(item => !BLACKLIST_IDS.includes(item.id))
+            .map(item => ({ ...item, isTV: false }))
+        ];
         
         displayResults(combinedResults);
         
