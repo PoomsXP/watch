@@ -254,9 +254,9 @@ window.open = function() { return { closed: true, focus: function(){}, close: fu
     function launchPlayer(type, id, season = 1, episode = 1) {
       let url = '';
       if (type === 'movie') {
-        url = `https://embed.su/embed/movie/${id}`;
+        url = `https://moviesapi.club/movie/${id}`;
       } else {
-        url = `https://embed.su/embed/tv/${id}/${season}/${episode}`;
+        url = `https://moviesapi.club/tv/${id}-${season}-${episode}`;
       }
 
       iframe.src = url;
