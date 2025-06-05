@@ -5,6 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pooxie Watch</title>
   <script>
+    // Block all attempts to open popups (windows/tabs)
+// Place this code as early as possible (top of <head>)
+(function() {
+  // 1. Completely disable window.open
+  window.open = function() { return null; };
+
+  // 2. Disable deprecated showModalDialog (rare, but safe)
+  window.showModalDialog = function() { return null; };
+
+  // 3. Block anchor tags with target="_blank" on click
+  document.addEventListener('click', function(e) {
+    let el = e.target;
+    // Traverse up in case a child element inside <a> was clicked
+    while (el && el.tagName !== 'A') el = el.parentElement;
+    if (el && el.tagName === 'A' && el.target === '_blank') {
+      e.preventDefault();
+      // Optionally, navigate in the same tab:
+      window.location = el.href;
+    }
+  }, true);
+
+  // 4. Block attempts using window.location.assign/new window.location
+  const assign = window.location.assign;
+  window.location.assign = function(url) {
+    if (window !== window.top) {
+      // Prevent frame busting
+      return;
+    }
+    assign.call(window.location, url);
+  };
+
+  // 5. Block setTimeout/setInterval that try to open popups
+  const originalSetTimeout = window.setTimeout;
+  window.setTimeout = function(fn, delay, ...args) {
+    if (typeof fn === "string" && fn.includes("window.open")) return;
+    return originalSetTimeout(fn, delay, ...args);
+  };
+  const originalSetInterval = window.setInterval;
+  window.setInterval = function(fn, delay, ...args) {
+    if (typeof fn === "string" && fn.includes("window.open")) return;
+    return originalSetInterval(fn, delay, ...args);
+  };
+
+  // 6. Block programmatic creation of <a target="_blank">
+  const origCreateElement = document.createElement;
+  document.createElement = function(tagName, ...args) {
+    const el = origCreateElement.call(document, tagName, ...args);
+    if (tagName.toLowerCase() === 'a') {
+      Object.defineProperty(el, 'target', {
+        set: function() {},
+        get: function() { return ''; }
+      });
+    }
+    return el;
+  };
+})();
+  </script>
+  <script>
 // ONE-LINE POPUP KILLER
 window.open = function() { return { closed: true, focus: function(){}, close: function(){} }; };
 </script>
