@@ -6,82 +6,99 @@
   <title>Pooxie Watch</title>
   <script>
     // Block all attempts to open popups (windows/tabs)
-    (function() {
-      window.open = function() { return null; };
-      window.showModalDialog = function() { return null; };
+// Place this code as early as possible (top of <head>)
+(function() {
+  // 1. Completely disable window.open
+  window.open = function() { return null; };
 
-      document.addEventListener('click', function(e) {
-        let el = e.target;
-        while (el && el.tagName !== 'A') el = el.parentElement;
-        if (el && el.tagName === 'A' && el.target === '_blank') {
-          e.preventDefault();
-          window.location = el.href;
-        }
-      }, true);
+  // 2. Disable deprecated showModalDialog (rare, but safe)
+  window.showModalDialog = function() { return null; };
 
-      const assign = window.location.assign;
-      window.location.assign = function(url) {
-        if (window !== window.top) return;
-        assign.call(window.location, url);
-      };
+  // 3. Block anchor tags with target="_blank" on click
+  document.addEventListener('click', function(e) {
+    let el = e.target;
+    // Traverse up in case a child element inside <a> was clicked
+    while (el && el.tagName !== 'A') el = el.parentElement;
+    if (el && el.tagName === 'A' && el.target === '_blank') {
+      e.preventDefault();
+      // Optionally, navigate in the same tab:
+      window.location = el.href;
+    }
+  }, true);
 
-      const originalSetTimeout = window.setTimeout;
-      window.setTimeout = function(fn, delay, ...args) {
-        if (typeof fn === "string" && fn.includes("window.open")) return;
-        return originalSetTimeout(fn, delay, ...args);
-      };
+  // 4. Block attempts using window.location.assign/new window.location
+  const assign = window.location.assign;
+  window.location.assign = function(url) {
+    if (window !== window.top) {
+      // Prevent frame busting
+      return;
+    }
+    assign.call(window.location, url);
+  };
 
-      const originalSetInterval = window.setInterval;
-      window.setInterval = function(fn, delay, ...args) {
-        if (typeof fn === "string" && fn.includes("window.open")) return;
-        return originalSetInterval(fn, delay, ...args);
-      };
+  // 5. Block setTimeout/setInterval that try to open popups
+  const originalSetTimeout = window.setTimeout;
+  window.setTimeout = function(fn, delay, ...args) {
+    if (typeof fn === "string" && fn.includes("window.open")) return;
+    return originalSetTimeout(fn, delay, ...args);
+  };
+  const originalSetInterval = window.setInterval;
+  window.setInterval = function(fn, delay, ...args) {
+    if (typeof fn === "string" && fn.includes("window.open")) return;
+    return originalSetInterval(fn, delay, ...args);
+  };
 
-      const origCreateElement = document.createElement;
-      document.createElement = function(tagName, ...args) {
-        const el = origCreateElement.call(document, tagName, ...args);
-        if (tagName.toLowerCase() === 'a') {
-          Object.defineProperty(el, 'target', {
-            set: function() {},
-            get: function() { return ''; }
-          });
-        }
-        return el;
-      };
-    })();
+  // 6. Block programmatic creation of <a target="_blank">
+  const origCreateElement = document.createElement;
+  document.createElement = function(tagName, ...args) {
+    const el = origCreateElement.call(document, tagName, ...args);
+    if (tagName.toLowerCase() === 'a') {
+      Object.defineProperty(el, 'target', {
+        set: function() {},
+        get: function() { return ''; }
+      });
+    }
+    return el;
+  };
+})();
   </script>
   <script>
-    // ONE-LINE POPUP KILLER
-    window.open = function() { return { closed: true, focus: function(){}, close: function(){} }; };
-  </script>
+// ONE-LINE POPUP KILLER
+window.open = function() { return { closed: true, focus: function(){}, close: function(){} }; };
+</script>
   <script>
-    // COMPLETE TAB/POPUP DESTROYER
-    (() => {
-      window.open = function() {
-        console.log("[Pooxie] Blocked new tab attempt");
-        return { closed: true, focus: () => {}, close: () => {} };
-      };
+// COMPLETE TAB/POPUP DESTROYER
+(() => {
+  // 1. Block window.open globally
+  window.open = function() {
+    console.log("[Pooxie] Blocked new tab attempt");
+    return { closed: true, focus: () => {}, close: () => {} }; // Return fake window
+  };
 
-      document.addEventListener('click', (e) => {
-        for (let el = e.target; el; el = el.parentElement) {
-          if (el.tagName === 'A' && el.target === '_blank') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            el.style.outline = '2px solid red';
-            setTimeout(() => el.style.outline = '', 2000);
-            console.log("[Pooxie] Blocked new tab from link");
-            return;
-          }
-        }
-      }, true);
+  // 2. Hijack all link clicks
+  document.addEventListener('click', (e) => {
+    for (let el = e.target; el; el = el.parentElement) {
+      if (el.tagName === 'A' && el.target === '_blank') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        el.style.outline = '2px solid red';
+        setTimeout(() => el.style.outline = '', 2000);
+        console.log("[Pooxie] Blocked new tab from link");
+        return;
+      }
+    }
+  }, true);
 
-      document.addEventListener('auxclick', (e) => {
-        if (e.button === 1) e.preventDefault();
-      }, true);
+  // 3. Block keyboard shortcuts (Ctrl+Click, Middle-click)
+  document.addEventListener('auxclick', (e) => {
+    if (e.button === 1) e.preventDefault(); // Middle mouse button
+  }, true);
 
-      console.log("[Pooxie] Tab blocker activated");
-    })();
-  </script>
+  // 4. Block all iframes that could spawn popups
+
+  console.log("[Pooxie] Tab blocker activated");
+})();
+</script>
 
   <style>
     body {
@@ -111,12 +128,29 @@
     }
 
     @keyframes rise {
-      0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-120vh) scale(0.5); opacity: 0; }
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-120vh) scale(0.5);
+        opacity: 0;
+      }
     }
 
-    .bubble:nth-child(odd) { width: 15px; height: 15px; animation-duration: 12s; left: 10%; }
-    .bubble:nth-child(even) { width: 25px; height: 25px; animation-duration: 18s; left: 80%; }
+    .bubble:nth-child(odd) {
+      width: 15px;
+      height: 15px;
+      animation-duration: 12s;
+      left: 10%;
+    }
+
+    .bubble:nth-child(even) {
+      width: 25px;
+      height: 25px;
+      animation-duration: 18s;
+      left: 80%;
+    }
 
     .container {
       backdrop-filter: blur(15px);
@@ -130,9 +164,15 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    h1, p { text-align: center; }
+    h1, p {
+      text-align: center;
+    }
 
-    label { display: block; margin-top: 15px; margin-bottom: 5px; }
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
 
     input, select {
       width: 100%;
@@ -147,7 +187,9 @@
       appearance: none;
     }
 
-    input::placeholder { color: #bbb; }
+    input::placeholder {
+      color: #bbb;
+    }
 
     button {
       background-color: #ff66cc;
@@ -164,9 +206,14 @@
       transition: all 0.3s ease;
     }
 
-    button:hover { background-color: #ff85d8; transform: scale(1.03); }
+    button:hover {
+      background-color: #ff85d8;
+      transform: scale(1.03);
+    }
 
-    .hidden { display: none; }
+    .hidden {
+      display: none;
+    }
 
     .player {
       position: fixed;
@@ -180,28 +227,18 @@
       flex-direction: column;
     }
 
+    .player iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+      height: 100%;
+    }
     .player embed {
       flex: 1;
       border: none;
       width: 100%;
       height: 100%;
     }
-
-    /* Fullscreen button */
-    #fullscreen-btn {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      z-index: 1000;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 18px;
-    }
-    #fullscreen-btn:hover { background: rgba(0,0,0,0.85); }
 
     .bubbles-container {
       position: fixed;
@@ -254,8 +291,7 @@
   </div>
 
   <div id="player" class="player">
-    <button id="fullscreen-btn">⛶</button>
-    <embed id="iframe" allowFullScreen="true"></embed>
+    <embed id="iframe" allowFullScreen="true"> </embed>
   </div>
 
   <script>
@@ -265,7 +301,6 @@
     const player = document.getElementById('player');
     const iframe = document.getElementById('iframe');
     const inputSection = document.getElementById('input-section');
-    const fsBtn = document.getElementById('fullscreen-btn');
 
     typeSelect.addEventListener('change', () => {
       tvInputs.classList.toggle('hidden', typeSelect.value !== 'tv');
@@ -287,6 +322,7 @@
       } else {
         url = `https://moviesapi.club/tv/${id}-${season}-${episode}`;
       }
+
       iframe.src = url;
       player.style.display = 'flex';
       inputSection.style.display = 'none';
@@ -304,6 +340,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       const { type, id, season, episode } = getQueryParams();
+
       if (type && id) {
         document.getElementById('tmdbId').value = id;
         document.getElementById('type').value = type;
@@ -313,15 +350,6 @@
           document.getElementById('episode').value = episode;
         }
         launchPlayer(type, id, season, episode);
-      }
-    });
-
-    // Fullscreen toggle
-    fsBtn.addEventListener("click", () => {
-      if (!document.fullscreenElement) {
-        player.requestFullscreen();
-      } else {
-        document.exitFullscreen();
       }
     });
   </script>
