@@ -233,6 +233,12 @@ window.open = function() { return { closed: true, focus: function(){}, close: fu
       width: 100%;
       height: 100%;
     }
+    .player embed {
+      flex: 1;
+      border: none;
+      width: 100%;
+      height: 100%;
+    }
 
     .bubbles-container {
       position: fixed;
@@ -285,7 +291,7 @@ window.open = function() { return { closed: true, focus: function(){}, close: fu
   </div>
 
   <div id="player" class="player">
-    <embed id="iframe" allowfullscreen> </embed>
+    <embed id="iframe" allowFullScreen="true"> </embed>
   </div>
 
   <script>
